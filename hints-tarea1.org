@@ -7,27 +7,27 @@
 *** Funciones base
 Primero recordamos la definicion de las tres funciones:
 #+begin_src python
-withdraw(amount):
+def withdraw(amount):
   self.balance -= amount
 
-deposit(amount):
+def deposit(amount):
   self.balance += amount
 
-trasnfer(src, dst, amount):
+def trasnfer(src, dst, amount):
   if src.balance >= amount: # 1
     src.withdraw(amount)    # 2
     dst.deposit(amount)     # 3
 #+end_src
 
 *** Implementacion de bajo nivel de withdraw / deposit
-La funcion ~withdraw~ y "~deposit~" en realidad se descomponen en tres pasos:
+Las funciones ~withdraw~ y ~deposit~ en realidad se descomponen en tres pasos:
 #+begin_src python
-withdraw(amount):
+def withdraw(amount):
   tmp = self.balance # A: load from memory and store in register
   tmp = tmp - amount # perform operation in the ALU using registers
   self.balance = tmp # B: store the result of the computation into memory
 
-deposit(amount):
+def deposit(amount):
   tmp = self.balance # C: load from memory and store in register
   tmp = tmp + amount # perform operation in the ALU using registers
   self.balance = tmp # D: store the result of the computation into memory
