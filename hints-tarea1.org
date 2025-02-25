@@ -33,4 +33,4 @@ deposit(amount):
 
 *** La condion de carrera quedaria de esta manera
 #+attr_html: :alt  :align center :class img
-[[./assets/problema5-race-condition.jpg][Ejemplo dinero de mas]]
+[[img:./assets/problema5-race-condition.jpg][Ejemplo dinero de mas]]
