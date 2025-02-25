@@ -30,8 +30,8 @@
   return result;
   #+end_src
 
-** Analsis
-- Para medir el tiempo de ejecucion solamente del algoritmo hay que modificar el metodo ~executeTestCaseAdd~, para que descarte el tiempo que toma cargar el archivo que contiene las entradas de la prueba y su salida esperada.
+** Reporte
+- Para medir el tiempo de ejecucion solamente del algoritmo a partir de la prueba unitarua, hay que modificar el metodo ~executeTestCaseAdd~ de la clase ~MatrixAdditionTest~, para que descarte el tiempo que toma cargar el archivo que contiene las entradas de la prueba y su salida esperada.
   #+begin_src java
   void executeTestCaseAdd(int testNumber, int threads) throws Exception {
     // ...
@@ -64,9 +64,9 @@
   Matrix addition test elapsed time. test: 2, threads: 8 -> 4 ms
   #+end_src
 
-- Ahora podemos obtener el ~speedup(2)~ teorico para dos procesadores lo podemos obtener al a partir del tiempo e ejecucion del algoritmo con 1 hilo y para 2 hilos, es decir ~speedup(2) = T(1)/T(2) = 12/10 = 1.2~.
+- Ahora podemos obtener el ~speedup(2)~ empiricamente, esto lo podemos lograr a partir del tiempo e ejecucion del algoritmo con 1 hilo y con 2 hilos, es decir, ~speedup(2) = T(1)/T(2) = 12 ms / 10 ms = 1.2~.
 
-- Despues utilizando la ley de Amdahl obtenemos el porcentaje de codigo paralelo ~speedup(2) = 1 / (1 - p + p/2) = 1.2~. para lo cual hay que resolver una ecuacion, con lo cual obtenemos ~p = 0.34~.
+- Despues utilizando la ley de Amdahl obtenemos el porcentaje de codigo paralelo ~speedup(2) = 1 / (1 - p + p/2) = 1.2~. para lo cual hay que resolver la ecuacion, con lo cual obtenemos ~p = 0.34~.
 
 - Para obtener el /speedup/ teorico para 4 y 8 procesadores/hilos, sustituimos el valor de ~p~ y de ~N~ en la formula de la ley de Amdahl.
 
