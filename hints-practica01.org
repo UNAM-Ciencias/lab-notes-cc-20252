@@ -43,10 +43,31 @@
 
     // aqui consultamos de nuevo el timestamp
     long elapsedTime = System.currentTimeMillis() - beg;
-    System.out.println("Matrix addition test elapsed time:" +
+    System.out.println("Matrix addition test elapsed time. " +
                        "test: " + testNumber +
                        ", threads: " + threads +
                        " -> " + elapsedTime + " ms");
     // ...
   }
   #+end_src
+
+- Recomendamos tomar el como referencia los tiempos de ejecucion de las siguientes pruebas:
+  - ~additionFile2Threads1~
+  - ~additionFile2Threads2~
+  - ~additionFile2Threads3~
+  - ~additionFile2Threads4~
+  Al ejecutar las pruebas con ~./mvnw test -Dtest=MatrixAdditionTest~ obtenemos:
+  #+begin_src
+  Matrix addition test elapsed time. test: 2, threads: 1 -> 12 ms
+  Matrix addition test elapsed time. test: 2, threads: 2 -> 10 ms
+  Matrix addition test elapsed time. test: 2, threads: 4 -> 6 ms
+  Matrix addition test elapsed time. test: 2, threads: 8 -> 4 ms
+  #+end_src
+
+- Ahora podemos obtener el ~speedup(2)~ teorico para dos procesadores lo podemos obtener al a partir del tiempo e ejecucion del algoritmo con 1 hilo y para 2 hilos, es decir ~speedup(2) = T(1)/T(2) = 12/10 = 1.2~.
+
+- Despues utilizando la ley de Amdahl obtenemos el porcentaje de codigo paralelo ~speedup(2) = 1 / (1 - p + p/2) = 1.2~. para lo cual hay que resolver una ecuacion, con lo cual obtenemos ~p = 0.34~.
+
+- Para obtener el /speedup/ teorico para 4 y 8 procesadores/hilos, sustituimos el valor de ~p~ y de ~N~ en la formula de la ley de Amdahl.
+
+- Para obtener el /speedup/ empirico para 4 y 8 procesadores/hilos simplemente lo hacemos como hicimos para 2 procesadores/hilos. Y comparamos contra los valores obtenidos en el punto anterior.
