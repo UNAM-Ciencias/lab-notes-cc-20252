@@ -1,5 +1,7 @@
 #+title: Hints Tarea1
 
+#+STARTUP: inlineimages
+
 * Problema 5
 ** Definciones
 *** Funciones base
@@ -31,7 +33,7 @@ deposit(amount):
   self.balance = tmp # D: store the result of the computation into memory
 #+end_src
 
-*** La condion de carrera quedaria de esta manera
+*** Condicion de carrera
 #+attr_html: :alt  :align center :class img
 #+attr_org: :width 650px
 [[./assets/problema5-race-condition.jpg]]
