@@ -31,7 +31,7 @@
   #+end_src
 
 ** Reporte
-- Para medir el tiempo de ejecucion solamente del algoritmo a partir de la prueba unitarua, hay que modificar el metodo ~executeTestCaseAdd~ de la clase ~MatrixAdditionTest~, para que descarte el tiempo que toma cargar el archivo que contiene las entradas de la prueba y su salida esperada.
+- Para medir el tiempo de ejecucion del algoritmo de manera aislado a partir de la prueba unitaria, hay que modificar el metodo ~executeTestCaseAdd~ de la clase ~MatrixAdditionTest~, para que descarte el tiempo que toma cargar el archivo que contiene las entradas de la prueba y su salida esperada.
   #+begin_src java
   void executeTestCaseAdd(int testNumber, int threads) throws Exception {
     // ...
@@ -51,18 +51,18 @@
   }
   #+end_src
 
-- Recomendamos tomar el como referencia los tiempos de ejecucion de las siguientes pruebas:
+- Recomendamos tomar como referencia los tiempos de ejecucion de las siguientes pruebas:
   - ~additionFile2Threads1~
   - ~additionFile2Threads2~
   - ~additionFile2Threads3~
   - ~additionFile2Threads4~
   Al ejecutar las pruebas con ~./mvnw test -Dtest=MatrixAdditionTest~ obtenemos:
-  #+begin_src
+  #+begin_example
   Matrix addition test elapsed time. test: 2, threads: 1 -> 12 ms
   Matrix addition test elapsed time. test: 2, threads: 2 -> 10 ms
   Matrix addition test elapsed time. test: 2, threads: 4 -> 6 ms
   Matrix addition test elapsed time. test: 2, threads: 8 -> 4 ms
-  #+end_src
+  #+end_example
 
 - Ahora podemos obtener el ~speedup(2)~ empiricamente, esto lo podemos lograr a partir del tiempo e ejecucion del algoritmo con 1 hilo y con 2 hilos, es decir, ~speedup(2) = T(1)/T(2) = 12 ms / 10 ms = 1.2~.
 
