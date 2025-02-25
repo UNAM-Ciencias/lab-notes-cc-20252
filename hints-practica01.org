@@ -1,0 +1,52 @@
+#+title: Hints Practica01
+
+* Suma de matrices
+
+** Implementacion
+- Primero hay que resolver el problema secuencialmente para pasar las pruebas.
+  #+begin_src java
+  var result = new Matrix<Integer>(matrixA.getRows(), matrixB.getColumns());
+  for (int row = 0; row < matrixA.getRows(); row++) {
+    for (int column = 0; column < matrixA.getRows(); column++) {
+      var aVal = matrixA.getValue(row, column);
+      var bVal = matrixB.getValue(row, column);
+      result.setValue(row, column, operator.applyAsInt(aVal, bVal));
+    }
+  }
+  return result;
+  #+end_src
+
+- Luego hay que ajustar la solucion para que la anterior rutina la puedan ejecutar distintos hilos pero para secciones independientes de la matriz
+  #+begin_src java
+  var threadList = new ArrayList<Thread>(this.threads);
+  var result = new Matrix<Integer>(matrixA.getRows(), matrixB.getColumns());
+  for (int i = 0; i < this.threads; i++) {
+    final threadId = i;
+    threadList.add(() -> {
+      // aqui va el codigo que va a ejecutar el hilo
+    });
+  }
+  this.runAndWaitForThreads(threadList);
+  return result;
+  #+end_src
+
+** Analsis
+- Para medir el tiempo de ejecucion solamente del algoritmo hay que modificar el metodo ~executeTestCaseAdd~, para que descarte el tiempo que toma cargar el archivo que contiene las entradas de la prueba y su salida esperada.
+  #+begin_src java
+  void executeTestCaseAdd(int testNumber, int threads) throws Exception {
+    // ...
+
+    /// timestamp antes de ejecutar la funcion
+    long beg = System.currentTimeMillis();
+
+    Matrix<Integer> matrixResult = matrixAddition.add(matrixA, matrixB, (x, y) -> x + y);
+
+    // aqui consultamos de nuevo el timestamp
+    long elapsedTime = System.currentTimeMillis() - beg;
+    System.out.println("Matrix addition test elapsed time:" +
+                       "test: " + testNumber +
+                       ", threads: " + threads +
+                       " -> " + elapsedTime + " ms");
+    // ...
+  }
+  #+end_src
