@@ -1,1 +1,31 @@
 
+#+title: Hints Tarea 2: Exclusión Mutual
+
+#+STARTUP: inlineimages
+
+* Tipos de ejercicio
+** Demostración de que una condición se cumple en general
+Lo más simple es que hagamos la prueba por contradicción.
+Por ejemplo para demostrar que un cierto algoritmo es libre de bloqueos, por contradicción tenemos que suporner que sí se bloquea, usualmente esto solo puede suceder en los /loops/ en los que los hilos se quedan esperando para saber si pueden o no avanzar a la sección crítica.
+
+En el ejercicio uno tenemos el siguiente código:
+
+#+begin_src java -n 1
+class MyLock implements Lock {
+  boolean[] flags = new boolean[]{false, false};
+  
+  public void lock() {
+    int myId = Thread.currentThread().getId();
+    int otherId = 1 - myId;
+    while(flag[otherId]);
+    flag[myId] = true;
+  }
+
+  public void unlock() {
+    int myId = Thread.currentThread().getId();
+    flag[myId] = false;
+  }
+}
+#+end_src
+
+
