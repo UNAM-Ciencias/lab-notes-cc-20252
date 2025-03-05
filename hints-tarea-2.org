@@ -1,19 +1,20 @@
-
-#+title: Hints Tarea 2: Exclusión Mutual
+#+title: Hints Tarea 2: Exclusión Mutua
 
 #+STARTUP: inlineimages
+#+LATEX_CLASS: article
 
-* Tipos de ejercicio
-** Demostración de que una condición se cumple en general
-Lo más simple es que hagamos la prueba por contradicción.
-Por ejemplo para demostrar que un cierto algoritmo es libre de bloqueos, por contradicción tenemos que suporner que sí se bloquea, usualmente esto solo puede suceder en los /loops/ en los que los hilos se quedan esperando para saber si pueden o no avanzar a la sección crítica.
+#+LaTeX_HEADER: \usepackage{wrapfig}
+#+LaTeX_HEADER: \usepackage[export]{adjustbox}
+#+LaTeX_HEADER: \usepackage{minted}
+#+LaTeX_HEADER: \usepackage{pdfpages}
 
-En el ejercicio uno tenemos el siguiente código:
 
+* Tipos de ejercicios
+** Codigo del ejercicio 1
 #+begin_src java -n 1
 class MyLock implements Lock {
   boolean[] flags = new boolean[]{false, false};
-  
+
   public void lock() {
     int myId = Thread.currentThread().getId();
     int otherId = 1 - myId;
@@ -28,4 +29,55 @@ class MyLock implements Lock {
 }
 #+end_src
 
+Algo importante de mencionar es que siempre asumimos las siguientes condiciones:
+1. La sección crítica siempre termina en un numero finito de pasos.
+2. Los hilos al terminar la ejecucion de la sección siempre invocan exitosamente el metodo ~unlock~ (incluso si la ejecucion terminara abruptamente por algun error o excepcion). Algo como el siguiente segmento
+   #+begin_src java -n 1
+void myMethod() {
+    // ... otro codigo antes de la seccion critica
+    // ..
+    mutex.lock();
+    try {
+        // Inicia seccion critica
+        // ..
+        // Seccion Critica
+        // ...
+        // Termina seccion critica
+    } finally {
+       // no importa si la ejecucion de la seccion critica
+       // termina exitosamente o con una excepcion siempre
+       // liberamos el candado
+       mutex.unlock();
+    }
+    // ..
+    // ... otro codigo despues de la seccion critica
+}
+   #+end_src
 
+** Demostración de que una condición se cumple en general
+Lo más simple es que hagamos la prueba por contradicción.
+Por ejemplo para demostrar que un cierto algoritmo es libre de bloqueos, por contradicción tenemos que suporner que sí se bloquea, usualmente esto solo puede suceder en los /loops/ en los que los hilos se quedan esperando para saber si pueden o no avanzar a la sección crítica.
+
+En el problema 1, el unico lugar del metodo ~lock()~ donde los hilos se podrian bloquear es en el ~while~ (/loop/) de la linea 7.
+Por lo tanto en lo subsecuente hay que derivar una contradicción partiendo de la premisa de que ambos hilos se quedan atorados simultaneamente en la linea 7.
+
+Consideremos a dos hilos $t_0$ y $t_1$, para que estos se queden girando en la linea 7 ambos tienen que leer ~flag[otherId] == true~, es decir, el arreglo ~flag~ tiene la forma ~{true, true}~. La primera anotacion importante es que no puede ser la primera vez que $t_0$ y $t_1$ ejecuten ~lock()~, ya que el estado inicial del arreglo ~flag~ es ~{false, false}~. Entonces necesariamente ambos hilos debieron de haber dejado su valor de ~flag~ a ~true~ la vez anterior que utilizaron el /candado/, sin embargo al hacerlo el ultimo metodo que invocaron fue ~unlock()~, y en la linea 13 de este cada hilo escribe ~flag[myId] = false~, lo cual implica que el estado final del arreglo ~flag~ al culminar la ejecucion de ~unlock()~ para ambos es ~{false, false}~ $\Rightarrow\!\Leftarrow$ , lo cual es una contradicción con el hecho de que ambos hilos vieron el estado del arreglo ~flag~ como ~{true, true}~.
+
+** Exhibir una ejecucion que demuestra que una propiedad no se cumple
+Al igual que en la tarea 1, tenemos que mostrar una ejecucion en la que se ejemplifique el orden de las operaciones que llevan a que la propiedad no se cumpla.
+
+Por ejemplo si queremos demostrar que el codigo anterior no cumple la propiedad de exclusion, basta dar una ejecucion que lo demuestre. Una alternativa a una linea de tiempo es proporcionar una lista con las operaciones. De nuevo consideramos dos hilos $t_0$ y $t_1$, y la ejecucion que lo demuestra es:
+Nota: consideremos que es la primera vez que ambos hilos invocan el metodo ~lock()~, es decir, el estado inicial del arreglo ~flag~ es ~{false, false}~
+
+1. $t_0$: [2] ~myId = 0~
+2. $t_0$: [3] ~otherId = 1 - 0 = 1~
+3. $t_0$: [4] ~while(flag[0])~, sale del ~while~ pues ~flag[0] == false~ y avanza a [5]
+4. $t_1$: [2] ~myId = 1~
+5. $t_1$: [3] ~otherId = 1 - 1 = 1~
+6. $t_1$: [4] ~while(flag[1])~, sale del ~while~ pues ~flag[1] == false~ y avanza a [5]
+7. $t_0$: [5] ~flag[0] = true~
+8. $t_0$: Entra a /CS/
+9. $t_1$: [5] ~flag[0] = true~
+10. $t_1$: Entra a /CS/
+
+Ambos hilos llegan a la seccion critica, por lo que podemos concluir que no se cumple la propiedad de exclusion.
