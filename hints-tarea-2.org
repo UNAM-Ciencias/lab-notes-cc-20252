@@ -8,7 +8,6 @@
 #+LaTeX_HEADER: \usepackage{minted}
 #+LaTeX_HEADER: \usepackage{pdfpages}
 
-
 * Tipos de ejercicios
 ** Codigo del ejercicio 1
 #+begin_src java -n 1
@@ -31,7 +30,7 @@ class MyLock implements Lock {
 
 Algo importante de mencionar es que siempre asumimos las siguientes condiciones:
 1. La sección crítica siempre termina en un numero finito de pasos.
-2. Los hilos al terminar la ejecucion de la sección siempre invocan exitosamente el metodo ~unlock~ (incluso si la ejecucion terminara abruptamente por algun error o excepcion). Algo como el siguiente segmento
+2. Los hilos al terminar la ejecucion de la sección siempre invocan exitosamente el metodo ~unlock()~ (incluso si la ejecucion terminara abruptamente por algun error o excepcion). Algo como el siguiente segmento
    #+begin_src java -n 1
 void myMethod() {
     // ... otro codigo antes de la seccion critica
@@ -53,7 +52,6 @@ void myMethod() {
     // ... otro codigo despues de la seccion critica
 }
    #+end_src
-
 ** Demostración de que una condición se cumple en general
 Lo más simple es que hagamos la prueba por contradicción.
 Por ejemplo para demostrar que un cierto algoritmo es libre de bloqueos, por contradicción tenemos que suporner que sí se bloquea, usualmente esto solo puede suceder en los /loops/ en los que los hilos se quedan esperando para saber si pueden o no avanzar a la sección crítica.
@@ -61,23 +59,72 @@ Por ejemplo para demostrar que un cierto algoritmo es libre de bloqueos, por con
 En el problema 1, el unico lugar del metodo ~lock()~ donde los hilos se podrian bloquear es en el ~while~ (/loop/) de la linea 7.
 Por lo tanto en lo subsecuente hay que derivar una contradicción partiendo de la premisa de que ambos hilos se quedan atorados simultaneamente en la linea 7.
 
-Consideremos a dos hilos $t_0$ y $t_1$, para que estos se queden girando en la linea 7 ambos tienen que leer ~flag[otherId] == true~, es decir, el arreglo ~flag~ tiene la forma ~{true, true}~. La primera anotacion importante es que no puede ser la primera vez que $t_0$ y $t_1$ ejecuten ~lock()~, ya que el estado inicial del arreglo ~flag~ es ~{false, false}~. Entonces necesariamente ambos hilos debieron de haber dejado su valor de ~flag~ a ~true~ la vez anterior que utilizaron el /candado/, sin embargo al hacerlo el ultimo metodo que invocaron fue ~unlock()~, y en la linea 13 de este cada hilo escribe ~flag[myId] = false~, lo cual implica que el estado final del arreglo ~flag~ al culminar la ejecucion de ~unlock()~ para ambos es ~{false, false}~ $\Rightarrow\!\Leftarrow$ , lo cual es una contradicción con el hecho de que ambos hilos vieron el estado del arreglo ~flag~ como ~{true, true}~.
+Consideremos que tenemos dos hilos $A$ y $B$
+
+- Si $A$ se queda atorado en la linea 7, significa que $read_A (flag[B] == true)$
+- Si $B$ se queda atorado en la linea 7, significa que $read_B (flag[A] == true)$
+
+La primera observacion importante es que no puede ser la primera vez que $A$ y $B$ ejecuten ~lock()~, ya que el estado inicial del arreglo ~flag~ es ~{false, false}~. Lo cual implica que $A$ y $B$ ya entraron por lo menos una vez a la seccion critica.
+
+- Dado que $read_A (flag[B] == true)$, y el estado inicial de $flag[B] == false$ , entonces $write_B (flag[B] = true) \rightarrow read_A (flag[B] == true)$
+- [1.1] Lo mismo sucede para $B$, si $read_B (flag[A] == true)$, i.e.  $write_A (flag[A] = true) \rightarrow read_B (flag[A] == true)$
+
+Cada vez que un hilo escribe $write_X (flag[X] = true)$ en el metodo ~lock~, al terminar de ejecutar la seccion critica ejecuta el metodo ~unlock~ en el cual hace $write_X (flag[X] = false)$
+
+Esto quiere decir que cualquier escritura a $flag[X] = true$ est a sucedida por una escritura de $flag[X] = false$, antes de volver a contender por el candado.
+
+- [1.2] $"lock:" write_A (flag[A] = true) \rightarrow  "unlock:" write_A (flag[A] = false)$
+
+Por [1.1] y [1.2] obtemos que  $write_A (flag[A] = true) \rightarrow write_A (flag[A] = false) \rightarrow read_B (flag[A] == true)$, es decir $write_A (flag[A] = false) \rightarrow read_B (flag[A] == true)$ $\Rightarrow\!\Leftarrow$ contradiccion.
 
 ** Exhibir una ejecucion que demuestra que una propiedad no se cumple
 Al igual que en la tarea 1, tenemos que mostrar una ejecucion en la que se ejemplifique el orden de las operaciones que llevan a que la propiedad no se cumpla.
 
-Por ejemplo si queremos demostrar que el codigo anterior no cumple la propiedad de exclusion, basta dar una ejecucion que lo demuestre. Una alternativa a una linea de tiempo es proporcionar una lista con las operaciones. De nuevo consideramos dos hilos $t_0$ y $t_1$, y la ejecucion que lo demuestra es:
+Por ejemplo si queremos demostrar que el codigo anterior no cumple la propiedad de exclusion, basta dar una ejecucion que lo demuestre. Una alternativa a una linea de tiempo es proporcionar una lista con las operaciones. De nuevo consideramos dos hilos $A$ y $B$, y la ejecucion que lo demuestra es:
 Nota: consideremos que es la primera vez que ambos hilos invocan el metodo ~lock()~, es decir, el estado inicial del arreglo ~flag~ es ~{false, false}~
 
-1. $t_0$: [2] ~myId = 0~
-2. $t_0$: [3] ~otherId = 1 - 0 = 1~
-3. $t_0$: [4] ~while(flag[0])~, sale del ~while~ pues ~flag[0] == false~ y avanza a [5]
-4. $t_1$: [2] ~myId = 1~
-5. $t_1$: [3] ~otherId = 1 - 1 = 1~
-6. $t_1$: [4] ~while(flag[1])~, sale del ~while~ pues ~flag[1] == false~ y avanza a [5]
-7. $t_0$: [5] ~flag[0] = true~
-8. $t_0$: Entra a /CS/
-9. $t_1$: [5] ~flag[0] = true~
-10. $t_1$: Entra a /CS/
+1. $A$: (linea 7) $read_A (flag[B] == false)$, entonces $A$ avanza a la siguiente linea.
+2. $B$: (linea 7) $read_B (flag[A] == false)$, entonces $B$ avanza a la siguiente linea.
+3. $A$: (linea 8) $write_A (flag[A] = true)$
+4. $A$: Entra a /CS/
+5. $B$: (linea 8) $write_B (flag[B] = true)$
+6. $B$: Entra a /CS/
 
 Ambos hilos llegan a la seccion critica, por lo que podemos concluir que no se cumple la propiedad de exclusion.
+
+** Codigo de 4
+#+begin_src java -n 1
+class Filter implements Lock {
+  int threads;
+  int[] level = new int[] {0, ..., 0}; // tiene longitud threads
+  int[] victim = new int[] {0, ..., 0}; // tiene longitud threads
+
+  public void lock() {
+    int myId = Thread.currentThread().getId();
+    for (int L = 1; L < level.length; L++) {
+      level[myId] = L;
+      victim[L] = myId;
+      while (existe k level[k] >= level[myId] && victim[L] == myId) {}
+    }
+  }
+
+  public void unlock() {
+    int myId = Thread.currentThread().getId();
+    level[myId] = 0;
+  }
+}
+#+end_src
+
+** Solucion ejercicio 4.b)
+Vamos a cambiar $\exists k \in \{0,...,N-1\}: level[k] \ge level[myId]$ por $\exists k \in \{0, ..., N-1\}: level[k] >  level[myId]$
+
+Supongamos que vamos a utilizar el candado para $N$ hilos $t_0, t_1, ..., t_{N-1}$, y consideremos 2 de esos $N$ hilos $A$ y $B$ y el resto de los hilos no compiten por adquirir el candado.
+
+1. $A$: (linea 9) $write_A (level[A] = 1)$
+2. $A$: (linea 10) $write_A (victim[1] = A)$
+3. $B$: (linea 9) $write_B (level[B] = 1)$
+4. $B$: (linea 10) $write_B (victim[1] = B)$
+5. $A$: (linea 11) $read_A (level[T] \le 1)\ \forall T$ y $read_A (victim[1] == B)$, entonces $A$ avanza al siguiente nivel, pues la condicion del ~while~ es ~false~.
+6. $B$: (linea 11) $read_B (level[T] \le 1)\ \forall T$ y $read_B (victim[1] == B)$, entonces $B$ avanza al siguiente nivel, pues la condicion del ~while~ es ~false~.
+7. En consecuencia tanto $A$ como $B$ pueden avanzar al siguiente nivel simultaneamente.
+8. Se repite este procedimiento hasta que ambos llevan al nivel $N$, es decir, ambos entran a la seccion critica.

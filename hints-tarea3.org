@@ -1,0 +1,246 @@
+#+title: Hints Tarea 3
+#+author: Alain Chevanier
+
+#+OPTIONS: date:nil
+
+#+LANGUAGE: es
+
+* Definiciones
+** /Method Call/
+- Una /method call/ (/llamada a metodo/) se compone de dos eventos: un /invocation event/ y un /response event/.
+- Una /method call/ es el intervalo de tiempo entre el /invocation event/ y el /response event/ correspondientes.
+- Si \( m_0 \) y \( m_1 \) son /method calls/, entonces \( m_0 \rightarrow m_1 \) si el /response event/ de \( m_0 \) precede al /invocation event/ de \( m_1 \).
+
+** Registro /Safe/
+Un registro ~SWSR~ o ~SWMR~ es /safe/ si:
+
+- *Safety*: Una llamada a ~read()~ que no se traslapa con ninguna llamada a ~write()~ regresa el valor escrito por la llamada mas reciente a ~write()~.
+- *Lectura / Escritura concurrente correcta*: Si una llamada a ~read()~ se traslapa con una llamada a ~write()~ puede regresar cualquier valor dentro del rango de valores permitidos (/Boolean/ \(\{0, 1\}\), /M-valued/ \(\{0, 1, ..., M-1\}\)).
+
+** Registro /Regular/
+Un registro ~SWSR~ o ~SWMR~ es /regular/ si:
+
+- *Safety*: Una llamada a ~read()~ que no se traslapa con ninguna llamada a ~write()~ regresa el valor escrito por la llamada mas reciente a ~write()~.
+- *Lectura / Escritura concurrente correcta*: Supongamos que una llamada a ~read()~ se traslapa con una llamada a ~write()~. Sea \(v^0\) el valor escrito por la ultima llamada anterior a ~write()~, y sea \(v^1\) el valor escrito por la llamada a ~write()~ que se traslapa con la llamada a ~read()~. La llamada a ~read()~ puede regresar \(v^0\) o \(v^1\).
+
+** Registro /Atomic/
+Un registro ~SWSR~ o ~SWMR~ es /atomic/ si:
+
+- *Safety*: Una llamada a ~read()~ que no se traslapa con ninguna llamada a ~write()~ regresa el valor escrito por la llamada mas reciente a ~write()~.
+- *Lectura / Escritura concurrente correcta*: Sean \(r_0\) y \(r_1\) dos llamadas a ~read()~ que se translapan con una llamada a ~write()~ y \(r_0 \rightarrow r_1\). Sea \(v^0\) el valor escrito por la ultima llamada anterior a ~write()~, y sea \(v^1\) el valor escrito por la llamada a ~write()~ que se traslapa con \(r_0\) y \(r_1\).
+  - Si \(r_0\) regresa \(v^1\), entonces \(r_1\) regresa \(v^1\).
+  - Si \(r_0\) regresa \(v^0\), entonces \(r_1\) puede regresar \(v^0\) o \(v^1\).
+
+** Lecturas y escrituras
+- Por simplicidad asumimos que los valores escritos o leidos son unicos.
+- Utilizamos \( v^i \) para denotar el valor unico escrito por \( W^i \).
+- Utilizamos \( R^i \) para denotar a cualquier llamada que regresa \( v^i \).
+
+*** Propiedades Registros Regulares
+- \( \nexists \  i \) tal que \( R^i \rightarrow W^i \)
+- \( \nexists \  j \) tal que \(W^i \rightarrow W^j \rightarrow R^i\)
+
+*** Propiedades Registros Atomicos
+- Si \(R^i \rightarrow R^j\) entonces \(i  < j\)
+
+* Construccion de ~Safe Boolean~ =single-writer= =multi-reader= a partir de ~Safe Boolean~ =single-writer= =single-reader=
+** Codigo
+#+begin_src java -n
+public class SafeBooleanSWMR implements Register<Boolean> {
+    private boolean[] s_table; // safe: single-writer single-reader
+
+    public SafeBooleanSWMR(int size) {
+        s_table = new boolean[size];
+    }
+
+    public boolean read() {
+        int myId = ThreadID.get();
+        return s_table[myId];
+    }
+
+    public void write(boolean value) {
+        for (int i = 0; i < s_table.length; i++) {
+            s_table[i] = value;
+        }
+    }
+}
+#+end_src
+** Demostracion de correctitud
+Para probar que la construcción es correcta, necesitamos demostrar que se cumplen las propiedades de /safety/ y /correctitud de lectura / escritura concurrente/.
+
+*** Safety
+
+Si la llamada a ~read()~ de /A/ no se translapa con ninguna llamada a ~write()~, se sigue que no se traslapa con nunguna llamada a ~write()~ del registro ~s_table[A]~, entonces la llamada a ~read()~ regresara el valor de ~s_table[A]~, que es el valor mas recientemente escrito en el.
+
+*** Lectura / Escritura concurrente correcta
+
+Si la llamada a ~read()~ de /A/ se translapa con una llamada a ~write()~, esta puede regresar cualquier valor. \( \square \)
+
+* Construccion de ~Regular Boolean~ =single-writer= =multi-reader= a partir de ~Safe Boolean~ =single-writer= =multi-reader=
+** Codigo
+#+begin_src java -n
+public class RegularBooleanSWMR implements Register<Boolean> {
+    private boolean s_value; // safe: single-writer multi-reader
+    ThreadLocal<Boolean> last;
+
+    public RegularBooleanSWMR(int size) {
+        last = ThreadLocal.withInitial(() -> false);
+    }
+
+    public boolean read() {
+        return s_value;
+    }
+
+    public void write(boolean value) {
+        if (value != last.get()) {
+            last.set(value);
+            s_value = value;
+        }
+    }
+}
+#+end_src
+
+** Demostracion de correctitud
+Para probar que la construcción es correcta, necesitamos demostrar que se cumplen las propiedades de /safety/ y /correctitud de lectura / escritura concurrente/.
+
+*** Safety
+
+Si la llamada a ~read()~ de /A/ no se translapa con ninguna llamada a ~write()~, se sigue que no se traslapa con nunguna llamada a ~write()~ del registro ~s_value~, entonces la llamada a ~read()~ regresara el valor de ~s_value~, que es el valor mas recientemente escrito en el.
+
+*** Lectura / Escritura concurrente correcta
+
+Si la llamada a ~read()~ de /A/ se translapa con una llamada a ~write()~, hay dos casos posibles a considerar:
+- Si el valor que esta siendo escrito es el mismo que el valor mas recientemente escrito, entonces el escritor evita escribir al registro ~s_value~, asegurandose de que los lectores lean el valor correcto.
+- Si el valor que esta siendo escrito es diferente al valor mas recientemente escrito, entonces esos valores deben de ser ~true~ o ~false~ porque el registro es de tipo ~Boolean~. Una lectura concurrente regresa  algun valor en el rango de valores permitidos, a saber, ~true~ o ~false~, cualquiera de los cuales es correcto. \( \square \)
+
+* Problema 4: Registro Safe Boolean SWMR
+** Problema
+En la construcción de un registro ~Safe Boolean~ =single-writer= =multi-reader= si reemplazamos el arreglo de los registros base ~s_table~ (~Safe Boolean~ /single-writer, single-reader/) por:
+
+a) Un arreglo de registros ~Regular Boolean~ /single-writer single-reader/. ¿Obtenemos uns construccion correcta de ~Regular Boolean~ /single-writer multi-reader/?
+b) Un arreglo de registros ~Regular M-valued~ /single-writer single-reader/. ¿Obtenemos una construccion correcta de ~Regular M-valued~ /single-writer multi-reader/?
+
+** a) Construccion de ~Regular Boolean~ =single-writer multi-reader= a partir de ~Regular Boolean~ =single-writer single-reader=
+#+begin_src java -n
+public class RegularBooleanSWMR implements Register<boolean> {
+    private boolean[] r_table; // regular: single-writer single-reader
+
+    public RegularBooleanSWMR(int size) {
+        r_table = new boolean[size];
+    }
+
+    public boolean read() {
+        int myId = ThreadID.get();
+        return r_table[myId];
+    }
+
+    public void write(boolean value) {
+        for (int i = 0; i < r_table.length; i++) {
+            r_table[i] = value;
+        }
+    }
+}
+#+end_src
+
+** a) Contra ejemplo o demostracion
+La recomendacion es primero ver si podemos encontrar un contra ejemplo en el que en una ejecucion concurrente de lecturas y una escritura, existe la posibilidad de que alguna de las lecturas regrese un valor incorrecto. Si no podemos encontrar un contra ejemplo, entonces podemos proceder a demostrar que la construccion es correcta. La tecnica de demostracion es similar a la que se utilizo en la demostracion de la correctitud de la construccion de ~Regular Boolean~ =single-writer= =multi-reader= a partir de ~Safe Boolean~ =single-writer= =single-reader=.
+
+** b) Construccion de ~Regular M-valued~ /single-writer multi-reader/ a partir de ~Regular M-valued~ /single-writer single-reader/
+#+begin_src java
+public class RegularMValuedSWMR implements Register<int> {
+    private int[] r_table; // regular: single-writer single-reader
+
+    public RegularMValuedSWMR(int size) {
+        r_table = new int[size];
+    }
+
+    public int read() {
+        int myId = ThreadID.get();
+        return r_table[myId];
+    }
+
+    public void write(int value) {
+        for (int i = 0; i < r_table.length; i++) {
+            r_table[i] = value;
+        }
+    }
+}
+#+end_src
+** b) Contra ejemplo o demostracion
+Aplican las mismas recomendaciones que en el caso a).
+
+* Problema 3: Algoritmo de Peterson
+** Codigo
+#+begin_src java -n
+public class Peterson {
+    private boolean[] flag = new boolean[] {false, false};
+    private int victim = 0;
+
+    public void lock() {
+        flag[myId] = true;
+        victim = myId;
+        while (flag[1 - otherId]
+               && victim == myId) {}
+    }
+
+    public void unlock() {
+        flag[myId] = myId;
+    }
+}
+#+end_src
+
+** Pregunta
+¿Sigue funcionando si reemplazamos los registros compartidos atomicos por registros regulares?
+
+** Estrategia de solucion
+Primero tenemos que identificar que tipo de registros compartidos son necesarios para que el algoritmo funcione correctamente.
+Cada entrada del arreglo ~flag~ solo puede ser escrita por el hilo propietario y leida por el otro hilo, entonces tiene que ser un /registro/ =Boolean= =single-writer= =single-reader=.
+Por otro lado la variable ~victim~ puede ser escrita y leida por ambos hilos concurrentemente, entonces tiene que ser un /registro/ =Boolean= =multi-writer= =multi-reader= (aunque victim es un integer en realidad solo puede valor 0 o 1 que son los ids de los hilos que la utilizan).
+
+#+begin_src java
+public class Peterson {
+    // flag[i] es un registro Boolean single-writer single-reader
+    boolean[] flag = new boolean[] {false, false};
+    // es un registro Boolean multi-writer multi-reader
+    int victim = 0;
+    // .. resto de la implementacion
+}
+#+end_src
+
+Ahora tenemos que analizar los escenarios en los que se pueden dar lecturas y escrituras concurrentes en el algoritmo:
+
+1. *Escenario 1*: [linea 6] \(write_A (flag[A] = true)\) es concurrente con [linea 8] \(read_B (flag[A] ==\ ?)\) y vice versa.
+2. *Escenario 2*: [linea 7] \(write_A (victim = A)\) es concurrente con [linea 9] \(read_B (victim ==\ ?)\) y vice versa.
+
+Lo que tenemos que verificar es  que no se rompa la propiedad de exclusión mutua en ninguno de los escenarios.
+
+*** Analisis Escenario 1
+Recordemos primero la secuencia de instrucciones que ejecuta \(B\) para llegar a [L8]:
+
+#+BEGIN_CENTER
+\(write_B (flag[B] = true) \rightarrow write_B (victim = B) \rightarrow read_B (flag[A] ==\ ?)\)
+#+END_CENTER
+
+Es decir el valor actual de =victim= es =B=. \newline
+
+Ahora cada vez que \(A\) realiza una escritura de \(true\) en su registro ~flag~ el valor anterior del registro es \(false\), por lo que una lectura concurrente de \(B\) de dicho registro puede regresar cualquiera de los dos valores. Entonces tenemos 2 casos:
+
+1. Si \(read_B (flag[A]==true)\), dado que \(read_B (victim==B)\),
+   entonces \(B\) se queda girando en el ~while~.
+2. Si \(read_B (flag[A]==false)\), \(B\) avanza a la sección crítica.
+   En este caso dado que ~flag[B] == true~ y que en [L7] \(write_A (victim = A)\), entonces A se queda girando en el ~while~ hasta que en [L13] \(write_B (flag[B] = false)\), es decir, hasta que \(B\) sale de la sección crítica. \(\square\)
+*** Analisis Escenario 2
+/Hint/: Sigue un razonamiento similar al del escenario 1.
+* Problema 1: Analisis de ejecuciones validas e invalidas dependiendo del tipo de registro
+El hint aqui es enumerar las operaciones de lectura y escritura, y si estas son concurrentes, entonces analizar si se cumplen las propiedades de los registros ~Safe~, ~Regular~ y ~Atomic~.
+
+En el caso especifico de ~Atomic~, hay que verificar que si dos lecturas  consecutivas son concurrentes con la misma escritura, entonces la segunda lectura regresa el valor correcto.
+
+* Problema 2: Ejecucion invalida
+Aqui simplemente basta exhibir una ejecucion que rompe alguna de las propiedades de lecturas, ya sea lecturas que no se traslapan con escrituras, o lecturas concurrentes con escrituras.
+
+* Problema 5: Analisis del algoritmo del Panadero / Filtro
+En este problema lo que se pide es identificar que tipo de registros son necesarios para que el algoritmo funcione.
+
+** Algoritmo del panadero
+Son necesarios dos arreglos de registros, el de ~flags~ (boolean) y el de ~labels~ (int). Solamente el hilo propietario de cada entrada puede escribir en cada registro, y el resto de los hilos deben de poder  leer el valor de todas las entradas para calcular su siguiente /label/ o para saber si pueden entrar a la sección crítica.
